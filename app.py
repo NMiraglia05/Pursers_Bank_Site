@@ -1,4 +1,7 @@
+from abc import ABC, abstractmethod
 from flask import Flask, render_template, request
+import json
+import pandas as pd
 
 app = Flask(__name__)
 
@@ -47,42 +50,48 @@ pivoted_items = {
     }
 }
 
-item_lookup = {
-    'coal': {'points': 1, 'cat': 'mining'},
-    'salt': {'points': 1, 'cat': 'mining'},
-    'stone': {'points': 1, 'cat': 'mining'},
-    'iron': {'points': 2, 'cat': 'mining'},
-    'quartz': {'points': 2, 'cat': 'mining'},
-    'copper': {'points': 2, 'cat': 'mining'},
-    'marble': {'points': 2, 'cat': 'mining'},
-    'mercury': {'points': 3, 'cat': 'mining'},
-    'sulfur': {'points': 3, 'cat': 'mining'},
-    'silver': {'points': 3, 'cat': 'mining'},
-    'manganese': {'points': 3, 'cat': 'mining'},
-    'obsidian': {'points': 4, 'cat': 'mining'},
-    'gold': {'points': 4, 'cat': 'mining'},
-    'soul gem': {'points': 4, 'cat': 'mining'},
-    'spell crystal': {'points': 4, 'cat': 'mining'},
-    'bone': {'points': 1, 'cat': 'hunting'},
-    'feathers': {'points': 1, 'cat': 'hunting'},
-    'honey': {'points': 1, 'cat': 'hunting', 'expiration': '1 month'},
-    'food': {'points': 1, 'cat': 'hunting', 'expiration': '1 month'},
-    'soft pelt': {'points': 2, 'cat': 'hunting'},
-    'demon blood': {'points': 2, 'cat': 'hunting'},
-    'large hide': {'points': 3, 'cat': 'hunting'},
-    'celestial blood': {'points': 3, 'cat': 'hunting'},
-    'fae blood': {'points': 4, 'cat': 'hunting'},
-    'cloth': {'points': 1, 'cat': 'mercantile'},
-    '5 postage (domestic)': {'points': 1, 'cat': 'mercantile'},
-    'paper': {'points': 1, 'cat': 'mercantile'},
-    'glass': {'points': 2, 'cat': 'mercantile'},
-    'blood ink': {'points': 2, 'cat': 'mercantile'},
-    '5 postage (overseas)': {'points': 2, 'cat': 'mercantile'},
-    'sanctified water': {'points': 3, 'cat': 'mercantile'},
-    'ritual component': {'points': 4, 'cat': 'mercantile'},
-    'zye scarab': {'points': 3, 'cat': 'black_market'},
-    'zye blood parasites': {'points': 4, 'cat': 'black_market'}
-}
+item_lookup = {item: {**data, 'cat': cat} for cat, items in pivoted_items.items() for item, data in items.items()}
+
+class Display(ABC):  # all classes used to pass info into the HTML must inherit this 
+    @abstractmethod
+    def format(self):  # used whenever a class will be passing details into HTML
+        pass
+
+class Item:
+    def __init__(self, item, quantity):
+        dic_ref = item_lookup[item]
+        item_cost = dic_ref['points']
+        if item_cost > 1:
+            item_cost *= 1.5
+        self.item = item
+        self.quantity = quantity
+        self.cost = item_cost * quantity
+        self.cat = dic_ref['cat']
+
+class Order(Display):
+    def __init__(self, order):
+        self.order_cost = 0
+        self.items = []  # store items for formatting
+        for item, quantity in order.items():
+            pull = Item(item, quantity)
+            self.items.append(pull)
+            self.order_cost += pull.cost
+
+    def format(self):
+        output = ''
+        for item in self.items:
+            readout = f'{item.quantity} {item.item} ({item.cost} silver)<br>'
+            output += readout
+        summary = f'<strong>Total Cost: {self.order_cost}</strong>'
+        output += summary
+        return output
+
+    def to_dict(self):
+        """Serialize the order for JSON"""
+        return {
+            "order_cost": self.order_cost,
+            "items": [{"item": i.item, "quantity": i.quantity} for i in self.items]
+        }
 
 @app.route('/')
 def index():
@@ -91,7 +100,6 @@ def index():
 @app.route('/order', methods=["GET", "POST"])
 def order():
     if request.method == "POST":
-        # Collect checked items and their quantities
         submitted = {}
         for cat, items_in_cat in pivoted_items.items():
             for item in items_in_cat:
@@ -99,37 +107,18 @@ def order():
                 qty_name = f"qty_{item}"
                 if checkbox_name in request.form:
                     submitted[item] = int(request.form.get(qty_name, 1))
-        
-        # Print selections to terminal
-       
-        order_details=construct_order(submitted)
-        
+
+        order_details = Order(submitted)
         return render_template('confirmation.html', order_details=order_details)
-    
+
     return render_template('order.html', items=pivoted_items)
 
-def construct_order(order):
-    order_details=[]
-    order_printout=''
-    total_cost=0
+@app.route('/order_confirmation', methods=["POST"])
+def process_confirmation():
+    order_json = request.form['order_json']
+    print("Confirmation button clicked!")
+    print("Order JSON received:", order_json)
+    return render_template("index.html", message="Action completed!")
 
-    for item,quantity in order.items():
-        item_cost=item_lookup[item]['points']
-        if item_cost>1:
-            item_cost*=1.5
-        order_cost=item_cost*quantity
-        total_cost+=order_cost
-        item_detail=f'{quantity} {item} ({order_cost} silver)'
-        order_details.append(item_detail)
-    for item in order_details:
-        printout=f'{item}<br><br>'
-        order_printout+=printout
-
-    total_cost_readout=f'<strong>Total cost: {total_cost} silver</strong>'
-
-    order_printout+=total_cost_readout
-
-    return order_printout
-
-if __name__=="__main__":
+if __name__ == "__main__":
     app.run(debug=True)
