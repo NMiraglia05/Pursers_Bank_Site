@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Order Page</title>
+<style>
+  .qty-select { display: none; margin-left: 10px; }
+</style>
+<script>
+function toggleQuantity(checkbox, id) {
+    const qty = document.getElementById(id);
+    qty.style.display = checkbox.checked ? 'inline' : 'none';
+    if (!checkbox.checked) qty.value = '1';
+}
+</script>
+</head>
+<body>
+<h1>Place Your Order</h1>
+<form method="POST">
+  {% for cat, items_in_cat in items.items() %}
+    <h2>{{ cat|capitalize }}</h2>
+    {% for name, info in items_in_cat.items() %}
+      <label>
+        <input type="checkbox" name="chk_{{ name }}" onchange="toggleQuantity(this,'qty_{{ name }}')">
+        {{ name }} — {{ info.points }} points
+        {% if info.expiration %}(expires in {{ info.expiration }}){% endif %}
+      </label>
+      <select name="qty_{{ name }}" id="qty_{{ name }}" class="qty-select">
+        {% for n in range(1,11) %}
+          <option value="{{ n }}">{{ n }}</option>
+        {% endfor %}
+      </select>
+      <br>
+    {% endfor %}
+  {% endfor %}
+  <br>
+  <button type="submit">Submit Order</button>
+</form>
+</body>
+</html>
