@@ -2,6 +2,9 @@ from abc import ABC, abstractmethod
 from flask import Flask, render_template, request
 import json
 import pandas as pd
+import smtplib
+from email.message import EmailMessage
+import os
 
 app = Flask(__name__)
 
@@ -57,6 +60,10 @@ class Display(ABC):  # all classes used to pass info into the HTML must inherit 
     def format(self):  # used whenever a class will be passing details into HTML
         pass
 
+class Person:
+    def update_details():
+        pass
+
 class Item:
     def __init__(self, item, quantity):
         dic_ref = item_lookup[item]
@@ -92,6 +99,31 @@ class Order(Display):
             "order_cost": self.order_cost,
             "items": [{"item": i.item, "quantity": i.quantity} for i in self.items]
         }
+    
+    def create_table(self):
+        rows=[]
+        for item in self.items:
+            row=[item.item,item.quantity,item.cost,item.cat]
+            rows.append(row)
+        df=pd.DataFrame(rows,columns=['Item','Quantity','Cost','Cat'])
+        return df
+    
+    def export(self):
+        EMAIL_USER=os.getenv('email_user')
+        EMAIL_PASS=os.getenv('email_password')
+
+        table=self.create_table()
+        table_html=table.to_html(index=False)
+        msg=EmailMessage()
+        msg['Subject']='Test Email'
+        msg['From']='carnauris@gmail.com'
+        msg['To']='carnauris@gmail.com'
+        msg.set_content('This is a test email sent from Python.')
+        msg.add_alternative(table_html, subtype='html')
+
+        with smtplib.SMTP_SSL('smtp.gmail.com',465) as smtp:
+            smtp.login(EMAIL_USER,EMAIL_PASS)
+            smtp.send_message(msg)
 
 @app.route('/')
 def index():
@@ -115,9 +147,23 @@ def order():
 
 @app.route('/order_confirmation', methods=["POST"])
 def process_confirmation():
-    order_json = request.form['order_json']
+    order_json=request.form['order_json']
     print("Confirmation button clicked!")
-    print("Order JSON received:", order_json)
+    print(order_json)
+    order_json=json.loads(order_json)
+    print(type(order_json))
+    try:
+        print(order_json['items'])
+    except:
+        print('nah still doesnt work')
+    order_={}
+
+    for item in order_json['items']:
+        order_[item['item']]=item['quantity']
+    order_details=Order(order_)
+
+    order_details.export()
+
     return render_template("index.html", message="Action completed!")
 
 if __name__ == "__main__":
