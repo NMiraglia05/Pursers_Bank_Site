@@ -162,8 +162,9 @@ def process_confirmation():
         order_[item['item']]=item['quantity']
     order_details=Order(order_)
 
-    order_details.export()
-
+    table=order_details.create_table()
+    print(table)
+    
     return render_template("index.html", message="Action completed!")
 
 if __name__ == "__main__":
