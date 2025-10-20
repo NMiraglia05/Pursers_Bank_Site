@@ -165,9 +165,7 @@ def process_confirmation():
         order_[item['item']]=item['quantity']
     order_details=Order(order_)
 
-    table=order_details.create_table()
-
-    print(table)
+    order_details.export()
 
     EMAIL_USER=os.getenv('email_user')
     EMAIL_PASS=os.getenv('email_password')
