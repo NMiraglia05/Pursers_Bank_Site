@@ -113,11 +113,14 @@ class Order(Display):
         EMAIL_PASS=os.getenv('email_password')
 
         table=self.create_table()
+        print('now exporting')
         table_html=table.to_html(index=False)
+        print('wsdsdsdsdsdsd')
         msg=EmailMessage()
         msg['Subject']='Test Email'
         msg['From']='carnauris@gmail.com'
         msg['To']='carnauris@gmail.com'
+        print('ssssss')
         msg.set_content('This is a test email sent from Python.')
         msg.add_alternative(table_html, subtype='html')
 
