@@ -163,7 +163,13 @@ def process_confirmation():
     order_details=Order(order_)
 
     table=order_details.create_table()
+
     print(table)
+
+    EMAIL_USER=os.getenv('email_user')
+    EMAIL_PASS=os.getenv('email_password')
+
+    print(EMAIL_USER)
     
     return render_template("index.html", message="Action completed!")
 
