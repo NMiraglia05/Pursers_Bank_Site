@@ -124,8 +124,11 @@ class Order(Display):
         msg.set_content('This is a test email sent from Python.')
         msg.add_alternative(table_html, subtype='html')
 
+        print('aspects assembled, now attempting to send')
+
         with smtplib.SMTP_SSL('smtp.gmail.com',465) as smtp:
             smtp.login(EMAIL_USER,EMAIL_PASS)
+            print('login successful. sending message.')
             smtp.send_message(msg)
 
 @app.route('/')
