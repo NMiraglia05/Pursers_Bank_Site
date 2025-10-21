@@ -1,6 +1,15 @@
 import uuid
 from datetime import date
 
+class DBHandler:
+    def __init__(self, db_path="app.db"):
+        self.conn = sqlite3.connect(db_path)
+        self.conn.row_factory = sqlite3.Row
+        self.cursor = self.conn.cursor()
+
+    def close(self):
+        self.conn.close()
+
 class Transaction(ABC):
     @property
     @abstractmethod
@@ -67,31 +76,48 @@ class Service(Payment):
         self.value=value # this is so that an adjustor can review the service provided and determine the value thereof. If a service payment is attempted without a value being set, it will not work.
         self.desc='Services provided for goods/services received.'
 
-class Person(Account):
-    def __init__(self):
+class Person(Account,DBHandler):
+    def __init__(self,details):
+        self.details=details
         self.character_name=details.character_name
         self.player_name=details.player_name
         self.discord=details.discord
     
-    def create(self):
+    def create(self,category=None):
+        if category is None:
+            raise AttributeError('No category defined.')
         self.uuid=str(uuid.uuid4())
-        self.id=max(table)+1
+        sql=f"SELECT MAX(ID) FROM {category}"
+        cursor.execute(sql)
+        max_id = cursor.fetchone()[0] or 0
+        self.id=max_id+1
+        self.day_created=date.today()
+
+    def save(self):
+        self.save_data=[self.uuid,self.id,self.character_name,self.player_name,self.day_created]
+
+    def format(self):
+        read_dic={'ID':self.id,'Character':self.character_name}
+        return read_dic
+
 
 class Employee(Person):
     def __init__(self,details):
-        super().__init__()
-
-    def create(self,cat='employee'):
-        super().create(cat)
-        self.character_name=details.character
-        self.player_name=details.player
+        super().__init__(details)
         self.rank=details.rank
-        self.day_created=date.today()
+    
+    def save(self):
+        super().save()
+        self.save_data.append(self.rank)
+
+    def format(self):
+        read_dic=super().format()
+        read_dic['Rank']=self.rank
+        return read_dic
 
 class Customer(Person):
-    def __init__(self):
-        def __super__():
-            pass
+    def __init__(self,details):
+        super().__init__(details)
         self.log_message=f'Customer {self.character_name}'
         self.accounts=[]
 
