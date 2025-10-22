@@ -1,5 +1,6 @@
 import uuid
 from datetime import date
+import counter
 
 class DBHandler:
     def __init__(self, db_path="app.db"):
@@ -158,9 +159,13 @@ class Order(Transaction):
         self.discord_id=customer.discord
         self.receipient_id=order.customer_id
         self.items=[]
+        self.status=None
         for item,amount in orders.items():
             for _ in range(amount):
                 self.items.append(item)
+
+    def create(self):
+        self.status='Pending'
 
 class Pull:
     def __init__(self,item):
