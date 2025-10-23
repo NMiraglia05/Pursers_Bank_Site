@@ -93,6 +93,7 @@ class Service(Payment):
 class Person(Account,DBHandler):
     def __init__(self,details):
         self.details=details
+        self.uuid=details.uuid
         self.character_name=details.character_name
         self.player_name=details.player_name
         self.discord=details.discord
