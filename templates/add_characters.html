@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Character Rows</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;background:#f7fafc;color:#0f172a}
+    h1{font-size:1.25rem;margin-bottom:8px}
+    .note{font-size:0.95rem;margin-bottom:12px;color:#334155}
+    .controls{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+    button{background:#0ea5a4;border:none;color:white;padding:8px 12px;border-radius:8px;cursor:pointer}
+    button.secondary{background:#64748b}
+    .rows{display:flex;flex-direction:column;gap:10px}
+    .row{display:grid;grid-template-columns:200px repeat(5,120px) 72px;gap:8px;padding:10px;border-radius:8px;background:white;align-items:center}
+    .row label{display:block;font-size:0.8rem;color:#475569}
+    .row input[type=text]{width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px}
+    select{width:100%;padding:8px;border-radius:6px;border:1px solid #e2e8f0}
+    .remove{background:#ef4444}
+    .actions{margin-top:14px}
+    .hint{font-size:0.9rem;color:#475569}
+  </style>
+</head>
+<body>
+  <h1>Character rows</h1>
+  <p class="note">Use the button below to add rows. Each row requires a <strong>Character name</strong>. Please enter the amount of cargo ships the character owns.</p>
+
+  <div class="controls">
+    <button id="addRow">Add row</button>
+    <button id="clearAll" class="secondary">Clear all</button>
+    <div style="margin-left:auto" class="hint">Rows will validate before submission.</div>
+  </div>
+
+  <form id="rowsForm">
+    <div class="rows" id="rowsContainer" aria-live="polite"></div>
+
+    <div class="actions">
+      <button type="submit">Submit</button>
+    </div>
+  </form>
+
+  <template id="rowTemplate">
+    <div class="row">
+      <div>
+        <label>Character name</label>
+        <input type="text" name="character_name" required minlength="1" placeholder="Enter name" />
+      </div>
+
+      <div>
+        <label>Mercantile</label>
+        <select name="mercantile"></select>
+      </div>
+
+      <div>
+        <label>Black Market</label>
+        <select name="black_market"></select>
+      </div>
+
+      <div>
+        <label>Hunting</label>
+        <select name="hunting"></select>
+      </div>
+
+      <div>
+        <label>Mining</label>
+        <select name="mining"></select>
+      </div>
+
+      <div>
+        <label>Cargo ship</label>
+        <select name="cargo_ship"></select>
+      </div>
+
+      <div>
+        <label style="visibility:hidden">remove</label>
+        <button type="button" class="remove">Remove</button>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    const rowsContainer=document.getElementById('rowsContainer');
+    const addRowBtn=document.getElementById('addRow');
+    const clearAllBtn=document.getElementById('clearAll');
+    const rowTemplate=document.getElementById('rowTemplate');
+    const form=document.getElementById('rowsForm');
+
+    // helper to build option elements
+    function buildOptions(selectEl,start,end,defaultVal=0){
+      selectEl.innerHTML='';
+      for(let i=start;i<=end;i++){
+        const opt=document.createElement('option');
+        opt.value=i;opt.textContent=i;
+        if(i===defaultVal)opt.selected=true;
+        selectEl.appendChild(opt);
+      }
+    }
+
+    function makeRow(){
+      const frag=rowTemplate.content.cloneNode(true);
+      const row=frag.querySelector('.row');
+
+      // populate selects
+      const merc= row.querySelector('select[name="mercantile"]');
+      const bm= row.querySelector('select[name="black_market"]');
+      const hunting= row.querySelector('select[name="hunting"]');
+      const mining= row.querySelector('select[name="mining"]');
+      const cargo= row.querySelector('select[name="cargo_ship"]');
+
+      [merc,bm,hunting,mining].forEach(s=>buildOptions(s,0,4,0));
+      buildOptions(cargo,0,10,0);
+
+      // remove handler
+      const removeBtn=row.querySelector('.remove');
+      removeBtn.addEventListener('click',()=>{
+        row.remove();
+      });
+
+      return row;
+    }
+
+    addRowBtn.addEventListener('click',()=>{
+      rowsContainer.appendChild(makeRow());
+      // focus the newly added name input
+      const last=rowsContainer.lastElementChild;
+      const input=last.querySelector('input[name="character_name"]');
+      if(input)input.focus();
+    });
+
+    clearAllBtn.addEventListener('click',()=>{
+      if(confirm('Remove all rows?'))rowsContainer.innerHTML='';
+    });
+
+    // ensure at least one row is present on load
+    if(rowsContainer.children.length===0)rowsContainer.appendChild(makeRow());
+
+    // handle submit: validation and collect data
+    form.addEventListener('submit',e=>{
+      e.preventDefault();
+
+      const inputs=[...rowsContainer.querySelectorAll('input[name="character_name"]')];
+      for(const inp of inputs){
+        if(!inp.value.trim()){
+          inp.focus();
+          alert('Please fill in all character name fields before submitting.');
+          return;
+        }
+      }
+
+      // collect rows
+      const data=[];
+      for(const r of rowsContainer.children){
+        const name=r.querySelector('input[name="character_name"]').value.trim();
+        const merc=r.querySelector('select[name="mercantile"]').value;
+        const bm=r.querySelector('select[name="black_market"]').value;
+        const hunting=r.querySelector('select[name="hunting"]').value;
+        const mining=r.querySelector('select[name="mining"]').value;
+        const cargo=r.querySelector('select[name="cargo_ship"]').value;
+        data.push({character_name:name,mercantile:Number(merc),black_market:Number(bm),hunting:Number(hunting),mining:Number(mining),cargo_ship:Number(cargo)});
+      }
+
+      // for demo, just show JSON. Replace with XHR/fetch to send to server.
+      alert('Collected '+data.length+' rows. Open the console to see the data.');
+      console.log('rows data',data);
+    });
+  </script>
+</body>
+</html>
