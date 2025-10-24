@@ -177,5 +177,9 @@ def process_confirmation():
     
     return render_template("index.html", message="Action completed!")
 
+@app.route('/add_characters')
+def add_characters():
+    return render_template('add_characters.html')
+
 if __name__ == "__main__":
     app.run(debug=True)
